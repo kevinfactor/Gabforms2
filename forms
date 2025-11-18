@@ -1,0 +1,876 @@
+import { useState } from "react";
+
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+const supabase = {
+  from: (table) => ({
+    insert: async (data) => {
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify(data)
+        });
+        if (!response.ok) throw new Error('Failed to insert data');
+        return { error: null };
+      } catch (err) {
+        return { error: err };
+      }
+    }
+  })
+};
+
+export default function App() {
+  const [view, setView] = useState("gabrielle");
+  return (
+    <div className="min-h-screen bg-slate-100">
+      <header className="bg-white shadow-sm">
+        <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-3">
+          <div>
+            <h1 className="text-lg font-semibold text-slate-800">
+              LK Legal – Pilot Workspace
+            </h1>
+            <p className="text-xs text-slate-500">
+              Internal forms & boards for Gideon, Gabrielle, Carl, and Matters.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <TopButton label="Gideon" active={view === "gideon"} onClick={() => setView("gideon")} />
+            <TopButton label="Gabrielle" active={view === "gabrielle"} onClick={() => setView("gabrielle")} />
+            <TopButton label="Carl" active={view === "carl"} onClick={() => setView("carl")} />
+            <TopButton label="Matters" active={view === "matters"} onClick={() => setView("matters")} />
+          </div>
+        </div>
+      </header>
+      <main className="max-w-6xl mx-auto px-6 py-6">
+        {view === "gideon" && <GideonSection />}
+        {view === "gabrielle" && <GabrielleSection />}
+        {view === "carl" && <CarlSection />}
+        {view === "matters" && <MatterView />}
+      </main>
+    </div>
+  );
+}
+
+function TopButton({ label, active, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-1.5 rounded-full text-sm font-medium border transition ${
+        active
+          ? "bg-blue-600 text-white border-blue-600"
+          : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function GideonSection() {
+  return (
+    <div className="bg-white rounded-lg shadow p-6">
+      <h2 className="text-xl font-bold text-slate-800 mb-2">Gideon's Section</h2>
+      <p className="text-sm text-slate-600">Banking actions, chasing queue, and coordination tasks</p>
+      <div className="mt-4 p-4 bg-slate-50 rounded text-sm text-slate-600">
+        Gideon's forms and dashboard coming soon...
+      </div>
+    </div>
+  );
+}
+
+function CarlSection() {
+  return (
+    <div className="bg-white rounded-lg shadow p-6">
+      <h2 className="text-xl font-bold text-slate-800 mb-2">Carl's Section</h2>
+      <p className="text-sm text-slate-600">Actions requiring approval, document review, and oversight</p>
+      <div className="mt-4 p-4 bg-slate-50 rounded text-sm text-slate-600">
+        Carl's dashboard coming soon...
+      </div>
+    </div>
+  );
+}
+
+function MatterView() {
+  return (
+    <div className="bg-white rounded-lg shadow p-6">
+      <h2 className="text-xl font-bold text-slate-800 mb-2">All Matters</h2>
+      <p className="text-sm text-slate-600">Complete view of all active matters across the firm</p>
+      <div className="mt-4 p-4 bg-slate-50 rounded text-sm text-slate-600">
+        Matter board view coming soon...
+      </div>
+    </div>
+  );
+}
+
+function GabrielleSection() {
+  const [activeTab, setActiveTab] = useState("daily");
+  const [message, setMessage] = useState({ type: "", text: "" });
+
+  const tabs = [
+    { id: "daily", label: "Daily Actions" },
+    { id: "onboarding", label: "Trust Onboarding" },
+    { id: "kyc", label: "KYC / Documents" },
+    { id: "execution", label: "Execution & Filing" },
+    { id: "internal", label: "Internal Requests" }
+  ];
+
+  return (
+    <div className="space-y-4">
+      {SUPABASE_URL === 'YOUR_SUPABASE_URL' && (
+        <div className="bg-amber-50 border border-amber-200 rounded p-4">
+          <p className="font-semibold text-amber-900 mb-2">⚙️ Setup Required</p>
+          <p className="text-sm text-amber-800">
+            Replace SUPABASE_URL and SUPABASE_ANON_KEY in the code.
+            Create table <code className="bg-amber-100 px-1">gabrielle_events</code>.
+          </p>
+        </div>
+      )}
+
+      <div className="bg-white rounded-lg shadow">
+        <div className="flex border-b overflow-x-auto">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-6 py-3 text-sm font-medium whitespace-nowrap transition ${
+                activeTab === tab.id
+                  ? 'border-b-2 border-blue-600 text-blue-600'
+                  : 'text-slate-600 hover:text-slate-800'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="p-6">
+          {message.text && (
+            <div className={`mb-4 p-3 text-sm rounded ${
+              message.type === "success"
+                ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                : "bg-red-100 text-red-800 border border-red-200"
+            }`}>
+              {message.text}
+            </div>
+          )}
+
+          {activeTab === "daily" && <DailyActionsForm setMessage={setMessage} />}
+          {activeTab === "onboarding" && <TrustOnboardingForm setMessage={setMessage} />}
+          {activeTab === "kyc" && <KycTrackerForm setMessage={setMessage} />}
+          {activeTab === "execution" && <ExecutionForm setMessage={setMessage} />}
+          {activeTab === "internal" && <InternalRequestForm setMessage={setMessage} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DailyActionsForm({ setMessage }) {
+  const [form, setForm] = useState({
+    date: new Date().toISOString().split('T')[0],
+    client: "",
+    matter: "",
+    actionType: "",
+    actionDescription: "",
+    assignedTo: [],
+    priority: "Medium",
+    dueDate: "",
+    notes: ""
+  });
+  const [loading, setLoading] = useState(false);
+
+  const teamMembers = ["Carl", "Gideon", "Raizy", "Yoseffa"];
+  const externalContacts = ["Paul", "Bank", "Notary", "Client", "Counterparty", "Other"];
+
+  const handleChange = (e) => {
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const toggleAssignee = (person) => {
+    setForm(prev => ({
+      ...prev,
+      assignedTo: prev.assignedTo.includes(person)
+        ? prev.assignedTo.filter(p => p !== person)
+        : [...prev.assignedTo, person]
+    }));
+  };
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    setMessage({ type: "", text: "" });
+
+    try {
+      const { error } = await supabase.from("gabrielle_events").insert({
+        form_type: "daily_action",
+        user_name: "Gabrielle",
+        action_date: form.date,
+        client: form.client,
+        matter: form.matter,
+        action_type: form.actionType,
+        action_description: form.actionDescription,
+        assigned_to: form.assignedTo,
+        priority: form.priority,
+        due_date: form.dueDate || null,
+        notes: form.notes,
+        status: "open"
+      });
+
+      if (error) throw error;
+
+      setMessage({ type: "success", text: "✓ Daily action saved!" });
+      setForm({
+        date: new Date().toISOString().split('T')[0],
+        client: "",
+        matter: "",
+        actionType: "",
+        actionDescription: "",
+        assignedTo: [],
+        priority: "Medium",
+        dueDate: "",
+        notes: ""
+      });
+    } catch (err) {
+      setMessage({ type: "error", text: err.message || "Error saving." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-lg font-semibold text-slate-800 mb-1">Daily Action Step</h3>
+        <p className="text-sm text-slate-600">Record what you're working on and who needs to take action</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Date *</label>
+          <input type="date" name="date" value={form.date} onChange={handleChange} required
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Action Type *</label>
+          <select name="actionType" value={form.actionType} onChange={handleChange} required
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+            <option value="">Select type</option>
+            <option value="Chase client">Chase client</option>
+            <option value="Chase bank">Chase bank</option>
+            <option value="Chase counterparty">Chase counterparty</option>
+            <option value="Document prep">Document prep</option>
+            <option value="Review documents">Review documents</option>
+            <option value="KYC follow-up">KYC follow-up</option>
+            <option value="Coordination">Coordination</option>
+            <option value="Filing">Filing</option>
+            <option value="Email/call">Email/call</option>
+            <option value="Meeting">Meeting</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Client</label>
+          <input name="client" value={form.client} onChange={handleChange}
+            placeholder="Client name (if applicable)"
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Matter</label>
+          <input name="matter" value={form.matter} onChange={handleChange}
+            placeholder="Matter name (if applicable)"
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">
+          What action did you take / needs to be taken? *
+        </label>
+        <textarea name="actionDescription" value={form.actionDescription} onChange={handleChange}
+          required rows={3} placeholder="Describe the action step..."
+          className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-2">
+          Assign to (select all that apply)
+        </label>
+        <div className="space-y-3">
+          <div>
+            <p className="text-xs font-semibold text-slate-500 mb-1">Internal Team</p>
+            <div className="flex flex-wrap gap-3">
+              {teamMembers.map(person => (
+                <label key={person} className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.assignedTo.includes(person)}
+                    onChange={() => toggleAssignee(person)} className="w-4 h-4" />
+                  <span className="text-sm text-slate-700">{person}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-slate-500 mb-1">External Contacts</p>
+            <div className="flex flex-wrap gap-3">
+              {externalContacts.map(person => (
+                <label key={person} className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.assignedTo.includes(person)}
+                    onChange={() => toggleAssignee(person)} className="w-4 h-4" />
+                  <span className="text-sm text-slate-700">{person}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Priority *</label>
+          <select name="priority" value={form.priority} onChange={handleChange} required
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+            <option value="Urgent">Urgent</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Due Date</label>
+          <input type="date" name="dueDate" value={form.dueDate} onChange={handleChange}
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Additional Notes</label>
+        <textarea name="notes" value={form.notes} onChange={handleChange} rows={2}
+          placeholder="Any extra context..."
+          className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+      </div>
+
+      <button onClick={handleSubmit} disabled={loading}
+        className="w-full bg-blue-600 text-white text-sm font-semibold py-3 rounded hover:bg-blue-700 disabled:bg-blue-300">
+        {loading ? "Saving…" : "Save Daily Action"}
+      </button>
+    </div>
+  );
+}
+
+function TrustOnboardingForm({ setMessage }) {
+  const [form, setForm] = useState({
+    client: "", matter: "", matterType: "", jurisdiction: "", stage: "", summary: "", details: ""
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    setMessage({ type: "", text: "" });
+    try {
+      const { error } = await supabase.from("gabrielle_events").insert({
+        form_type: "trust_onboarding", user_name: "Gabrielle", client: form.client,
+        matter: form.matter, matter_type: form.matterType, jurisdiction: form.jurisdiction,
+        stage: form.stage, summary: form.summary, details: form.details, status: "open"
+      });
+      if (error) throw error;
+      setMessage({ type: "success", text: "✓ Trust onboarding saved." });
+      setForm({ client: "", matter: "", matterType: "", jurisdiction: "", stage: "", summary: "", details: "" });
+    } catch (err) {
+      setMessage({ type: "error", text: err.message || "Error saving." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Client name *</label>
+        <input name="client" value={form.client} onChange={handleChange} required
+          placeholder="e.g., Tenenbaum Family"
+          className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Matter name *</label>
+        <input name="matter" value={form.matter} onChange={handleChange} required
+          placeholder="e.g., Trust Creation 2025"
+          className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Matter type *</label>
+          <select name="matterType" value={form.matterType} onChange={handleChange} required
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+            <option value="">Select</option>
+            <option value="Trust creation">Trust creation</option>
+            <option value="Trust amendment">Trust amendment</option>
+            <option value="Foundation setup">Foundation setup</option>
+            <option value="Company registration">Company registration</option>
+            <option value="Banking setup">Banking setup</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Jurisdiction</label>
+          <select name="jurisdiction" value={form.jurisdiction} onChange={handleChange}
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+            <option value="">Not set</option>
+            <option value="BVI">BVI</option>
+            <option value="Israel">Israel</option>
+            <option value="UAE">UAE</option>
+            <option value="Isle of Man">Isle of Man</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Stage *</label>
+        <select name="stage" value={form.stage} onChange={handleChange} required
+          className="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+          <option value="">Select stage</option>
+          <option value="Stage 1 – Client meeting / instruction">Stage 1 – Client meeting</option>
+          <option value="Stage 2 – Engagement letter sent">Stage 2 – Engagement letter</option>
+          <option value="Stage 3 – Documents / KYC pending">Stage 3 – Documents / KYC</option>
+          <option value="Stage 4 – Drafts / Notary">Stage 4 – Drafts / Notary</option>
+          <option value="Stage 5 – Bank account opening">Stage 5 – Bank account</option>
+          <option value="Stage 6 – Executed documents">Stage 6 – Executed documents</option>
+          <option value="Stage 7 – Resolutions / finalisation">Stage 7 – Finalisation</option>
+        </select>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Short summary *</label>
+        <input name="summary" value={form.summary} onChange={handleChange} required
+          placeholder="1–2 lines"
+          className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Details (optional)</label>
+        <textarea name="details" value={form.details} onChange={handleChange} rows={3}
+          className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+      </div>
+      <button onClick={handleSubmit} disabled={loading}
+        className="w-full bg-blue-600 text-white text-sm font-semibold py-3 rounded hover:bg-blue-700 disabled:bg-blue-300">
+        {loading ? "Saving…" : "Save Onboarding Entry"}
+      </button>
+    </div>
+  );
+}
+
+function KycTrackerForm({ setMessage }) {
+  const TOP_CLIENTS = ["Banter Capital", "Huddle Park", "Tenenbaum Family", "Office Family", "Other"];
+  const DOC_OPTIONS = ["Passport", "Proof of address", "CV", "Beneficiary list", "Protector docs", "Company documents", "Source of wealth / funds", "Other"];
+  
+  const KYC_CHECKLISTS = {
+    "Trust Creation/Amendment": [
+      "Settlor KYC requested",
+      "Settlor KYC complete",
+      "Trustee(s) KYC requested",
+      "Trustee(s) KYC complete",
+      "Protector KYC requested (if applicable)",
+      "Protector KYC complete",
+      "Beneficiary list received",
+      "Structure chart / family tree captured"
+    ],
+    "Bank Account Opening (Trust/Entity)": [
+      "Bank onboarding form completed",
+      "Client KYC pack complete for bank",
+      "Entity/Trust documents compiled (deeds, resolutions, etc.)",
+      "Bank's KYC checklist satisfied",
+      "Outstanding bank questions logged"
+    ],
+    "KYC/Compliance Pack": [
+      "Annual KYC checklist sent",
+      "FATCA form sent",
+      "FATCA form received",
+      "CRS self-cert sent",
+      "CRS self-cert received",
+      "Enhanced due diligence requested (if applicable)",
+      "KYC review completed, next review date set"
+    ]
+  };
+
+  const [form, setForm] = useState({
+    client: "", matter: "", matterType: "", docs: [], status: "", waitingOn: "", summary: "", details: ""
+  });
+  const [selectedSteps, setSelectedSteps] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const currentChecklist = KYC_CHECKLISTS[form.matterType] || [];
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    if (name === "matterType") {
+      setForm(prev => ({ ...prev, [name]: value }));
+      setSelectedSteps([]);
+      return;
+    }
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const toggleDoc = (doc) => {
+    setForm(prev => ({
+      ...prev, docs: prev.docs.includes(doc) ? prev.docs.filter(d => d !== doc) : [...prev.docs, doc]
+    }));
+  };
+
+  const toggleStep = (step) => {
+    setSelectedSteps(prev =>
+      prev.includes(step) ? prev.filter(s => s !== step) : [...prev, step]
+    );
+  };
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    setMessage({ type: "", text: "" });
+    try {
+      const { error } = await supabase.from("gabrielle_events").insert({
+        form_type: "kyc", user_name: "Gabrielle", client: form.client, matter: form.matter,
+        matter_type: form.matterType, documents: form.docs, status: form.status, 
+        waiting_on: form.waitingOn, summary: form.summary, details: form.details,
+        steps_completed: selectedSteps
+      });
+      if (error) throw error;
+      setMessage({ type: "success", text: "✓ KYC event saved." });
+      setForm({ client: "", matter: "", matterType: "", docs: [], status: "", waitingOn: "", summary: "", details: "" });
+      setSelectedSteps([]);
+    } catch (err) {
+      setMessage({ type: "error", text: err.message || "Error saving." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Client name *</label>
+        <select name="client" value={form.client} onChange={handleChange} required
+          className="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+          <option value="">Select client</option>
+          {TOP_CLIENTS.map(c => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Matter name *</label>
+        <input name="matter" value={form.matter} onChange={handleChange} required
+          placeholder="e.g., Trust Creation 2025"
+          className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Matter type (for KYC workflow) *</label>
+        <select name="matterType" value={form.matterType} onChange={handleChange} required
+          className="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+          <option value="">Select matter type</option>
+          <option value="Trust Creation/Amendment">Trust Creation / Amendment</option>
+          <option value="Bank Account Opening (Trust/Entity)">Bank Account Opening (Trust / Entity)</option>
+          <option value="KYC/Compliance Pack">KYC / Compliance Pack (Recurring)</option>
+        </select>
+        <p className="text-xs text-slate-500 mt-1">This controls which checklist appears below.</p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-2">Documents involved</label>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          {DOC_OPTIONS.map(doc => (
+            <label key={doc} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
+              <input type="checkbox" checked={form.docs.includes(doc)}
+                onChange={() => toggleDoc(doc)} className="w-4 h-4" />
+              <span className="text-slate-700">{doc}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Document status *</label>
+          <select name="status" value={form.status} onChange={handleChange} required
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+            <option value="">Select</option>
+            <option value="Requested">Requested</option>
+            <option value="Received – complete">Received – complete</option>
+            <option value="Partially received">Partially received</option>
+            <option value="Expired / needs update">Expired / needs update</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Waiting on *</label>
+          <select name="waitingOn" value={form.waitingOn} onChange={handleChange} required
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+            <option value="">Select</option>
+            <option value="Client">Client</option>
+            <option value="Bank">Bank</option>
+            <option value="Counterparty">Counterparty</option>
+            <option value="Carl">Carl</option>
+            <option value="Gideon">Gideon</option>
+            <option value="Notary">Notary</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      {form.matterType && (
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            KYC workflow steps ({form.matterType})
+          </label>
+          {currentChecklist.length === 0 ? (
+            <p className="text-xs text-slate-400">No checklist configured yet for this matter type.</p>
+          ) : (
+            <div className="space-y-1 text-sm bg-slate-50 p-3 rounded border border-slate-200">
+              {currentChecklist.map(step => (
+                <label key={step} className="flex items-start gap-2 cursor-pointer hover:bg-white p-1 rounded">
+                  <input type="checkbox" className="mt-0.5 w-4 h-4"
+                    checked={selectedSteps.includes(step)}
+                    onChange={() => toggleStep(step)} />
+                  <span className="text-slate-700">{step}</span>
+                </label>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-slate-500 mt-1">
+            Tick what you've done. Each tick is stored as a structured step in the database.
+          </p>
+        </div>
+      )}
+
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Short summary *</label>
+        <input name="summary" value={form.summary} onChange={handleChange} required
+          placeholder="1–2 lines about this KYC step"
+          className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Details / notes (optional)</label>
+        <textarea name="details" value={form.details} onChange={handleChange} rows={3}
+          placeholder="Any additional context..."
+          className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+      </div>
+
+      <button onClick={handleSubmit} disabled={loading}
+        className="w-full bg-blue-600 text-white text-sm font-semibold py-3 rounded hover:bg-blue-700 disabled:bg-blue-300">
+        {loading ? "Saving…" : "Save KYC Entry"}
+      </button>
+    </div>
+  );
+}
+
+function ExecutionForm({ setMessage }) {
+  const [form, setForm] = useState({
+    client: "", matter: "", docType: "", executionStatus: "", summary: "", details: ""
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    setMessage({ type: "", text: "" });
+    try {
+      const { error } = await supabase.from("gabrielle_events").insert({
+        form_type: "execution", user_name: "Gabrielle", client: form.client, matter: form.matter,
+        doc_type: form.docType, execution_status: form.executionStatus,
+        summary: form.summary, details: form.details
+      });
+      if (error) throw error;
+      setMessage({ type: "success", text: "✓ Execution event saved." });
+      setForm({ client: "", matter: "", docType: "", executionStatus: "", summary: "", details: "" });
+    } catch (err) {
+      setMessage({ type: "error", text: err.message || "Error saving." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Client name *</label>
+        <input name="client" value={form.client} onChange={handleChange} required
+          className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Matter name *</label>
+        <input name="matter" value={form.matter} onChange={handleChange} required
+          className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Document type *</label>
+          <select name="docType" value={form.docType} onChange={handleChange} required
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+            <option value="">Select</option>
+            <option value="Trust deed">Trust deed</option>
+            <option value="Protector letter">Protector letter</option>
+            <option value="Resolution">Resolution</option>
+            <option value="Loan agreement">Loan agreement</option>
+            <option value="Side letter">Side letter</option>
+            <option value="Bank form">Bank form</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Execution status *</label>
+          <select name="executionStatus" value={form.executionStatus} onChange={handleChange} required
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+            <option value="">Select</option>
+            <option value="Sent for signing">Sent for signing</option>
+            <option value="Partially signed">Partially signed</option>
+            <option value="Fully signed">Fully signed</option>
+            <option value="Filed / stored">Filed / stored</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Short summary *</label>
+        <input name="summary" value={form.summary} onChange={handleChange} required
+          placeholder="1–2 lines"
+          className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Details (optional)</label>
+        <textarea name="details" value={form.details} onChange={handleChange} rows={3}
+          placeholder="Who still needs to sign, notary details..."
+          className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+      </div>
+      <button onClick={handleSubmit} disabled={loading}
+        className="w-full bg-blue-600 text-white text-sm font-semibold py-3 rounded hover:bg-blue-700 disabled:bg-blue-300">
+        {loading ? "Saving…" : "Save Execution Entry"}
+      </button>
+    </div>
+  );
+}
+
+function InternalRequestForm({ setMessage }) {
+  const [form, setForm] = useState({
+    client: "", matter: "", requestFor: { Carl: false, Gideon: false, Raizy: false },
+    requestType: "", urgency: "", summary: "", details: ""
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const togglePerson = (person) => {
+    setForm(prev => ({
+      ...prev, requestFor: { ...prev.requestFor, [person]: !prev.requestFor[person] }
+    }));
+  };
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    setMessage({ type: "", text: "" });
+
+    const requestForArray = Object.entries(form.requestFor)
+      .filter(([_, checked]) => checked)
+      .map(([name]) => name);
+
+    try {
+      const { error } = await supabase.from("gabrielle_events").insert({
+        form_type: "internal_request", user_name: "Gabrielle", client: form.client,
+        matter: form.matter, request_for: requestForArray, request_type: form.requestType,
+        urgency: form.urgency, summary: form.summary, details: form.details, status: "open"
+      });
+      if (error) throw error;
+      setMessage({ type: "success", text: "✓ Internal request saved." });
+      setForm({
+        client: "", matter: "", requestFor: { Carl: false, Gideon: false, Raizy: false },
+        requestType: "", urgency: "", summary: "", details: ""
+      });
+    } catch (err) {
+      setMessage({ type: "error", text: err.message || "Error saving." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const atLeastOnePerson = Object.values(form.requestFor).some(Boolean);
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Client name *</label>
+        <input name="client" value={form.client} onChange={handleChange} required
+          className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Matter name *</label>
+        <input name="matter" value={form.matter} onChange={handleChange} required
+          className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-2">This request is for: *</label>
+        <div className="flex gap-6 text-sm">
+          {["Carl", "Gideon", "Raizy"].map(person => (
+            <label key={person} className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.requestFor[person]}
+                onChange={() => togglePerson(person)} className="w-4 h-4" />
+              <span className="text-slate-700 font-medium">{person}</span>
+            </label>
+          ))}
+        </div>
+        {!atLeastOnePerson && (
+          <p className="text-xs text-red-600 mt-1">Select at least one person.</p>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Type of request *</label>
+          <select name="requestType" value={form.requestType} onChange={handleChange} required
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+            <option value="">Select</option>
+            <option value="Draft document">Draft document</option>
+            <option value="Review / redline">Review / redline</option>
+            <option value="Approval">Approval</option>
+            <option value="Bank action">Bank action</option>
+            <option value="File / organise documents">File / organise documents</option>
+            <option value="Chase counterparty">Chase counterparty</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Urgency *</label>
+          <select name="urgency" value={form.urgency} onChange={handleChange} required
+            className="w-full border border-slate-300 rounded px-3 py-2 text-sm">
+            <option value="">Select</option>
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">
+          What do you need them to do? *
+        </label>
+        <input name="summary" value={form.summary} onChange={handleChange} required
+          placeholder="1–2 lines"
+          className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">
+          Extra details / context (optional)
+        </label>
+        <textarea name="details" value={form.details} onChange={handleChange} rows={3}
+          className="w-full border border-slate-300 rounded px-3 py-2 text-sm" />
+      </div>
+      <button onClick={handleSubmit} disabled={loading || !atLeastOnePerson}
+        className="w-full bg-blue-600 text-white text-sm font-semibold py-3 rounded hover:bg-blue-700 disabled:bg-blue-300">
+        {loading ? "Saving…" : "Save Internal Request"}
+      </button>
+    </div>
+  );
+}
